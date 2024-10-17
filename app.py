@@ -9,6 +9,7 @@ from functools import lru_cache
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+import graphviz
 
 @lru_cache(maxsize=1)
 def load_model() -> HookedTransformer:
@@ -19,6 +20,86 @@ def load_model() -> HookedTransformer:
         HookedTransformer: The loaded distilgpt2 model.
     """
     return HookedTransformer.from_pretrained("distilgpt2")
+
+
+def create_hierarchical_graph(model):
+    dot = graphviz.Digraph(comment='DistilGPT2 Hierarchical Computational Graph')
+    dot.attr(rankdir='TB', size='12,12', ratio='fill')
+    
+    # Input
+    dot.node('input', 'Input Tokens', shape='ellipse')
+    
+    # Embedding
+    with dot.subgraph(name='cluster_embedding') as c:
+        c.attr(label='Embedding', style='filled', color='lightblue')
+        c.node('token_emb', 'Token Embedding')
+        c.node('pos_emb', 'Positional Embedding')
+        c.edge('token_emb', 'pos_emb')
+    
+    dot.edge('input', 'token_emb')
+    
+    # Transformer Blocks (similar to above code)
+    for i in range(6):
+        with dot.subgraph(name=f'cluster_block_{i}') as c:
+            c.attr(label=f'Block {i}', style='filled', color='lightgrey')
+            
+            with c.subgraph(name=f'cluster_ln1_{i}') as ln1:
+                ln1.attr(label='Layer Norm 1', style='filled', color='lightyellow')
+                ln1.node(f'ln1_mean_{i}', 'Mean')
+                ln1.node(f'ln1_var_{i}', 'Variance')
+                ln1.node(f'ln1_norm_{i}', 'Normalize')
+                ln1.edge(f'ln1_mean_{i}', f'ln1_norm_{i}')
+                ln1.edge(f'ln1_var_{i}', f'ln1_norm_{i}')
+            
+            with c.subgraph(name=f'cluster_attn_{i}') as attn:
+                attn.attr(label='Self-Attention', style='filled', color='lightgreen')
+                attn.node(f'q_{i}', 'Query')
+                attn.node(f'k_{i}', 'Key')
+                attn.node(f'v_{i}', 'Value')
+                attn.node(f'attn_scores_{i}', 'Attention Scores')
+                attn.node(f'attn_output_{i}', 'Attention Output')
+                attn.edge(f'q_{i}', f'attn_scores_{i}')
+                attn.edge(f'k_{i}', f'attn_scores_{i}')
+                attn.edge(f'attn_scores_{i}', f'attn_output_{i}')
+                attn.edge(f'v_{i}', f'attn_output_{i}')
+            
+            with c.subgraph(name=f'cluster_ln2_{i}') as ln2:
+                ln2.attr(label='Layer Norm 2', style='filled', color='lightyellow')
+                ln2.node(f'ln2_mean_{i}', 'Mean')
+                ln2.node(f'ln2_var_{i}', 'Variance')
+                ln2.node(f'ln2_norm_{i}', 'Normalize')
+                ln2.edge(f'ln2_mean_{i}', f'ln2_norm_{i}')
+                ln2.edge(f'ln2_var_{i}', f'ln2_norm_{i}')
+            
+            with c.subgraph(name=f'cluster_mlp_{i}') as mlp:
+                mlp.attr(label='MLP', style='filled', color='lightpink')
+                mlp.node(f'fc1_{i}', 'FC1')
+                mlp.node(f'gelu_{i}', 'GELU')
+                mlp.node(f'fc2_{i}', 'FC2')
+                mlp.edge(f'fc1_{i}', f'gelu_{i}')
+                mlp.edge(f'gelu_{i}', f'fc2_{i}')
+            
+            c.edge(f'ln1_norm_{i}', f'q_{i}')
+            c.edge(f'ln1_norm_{i}', f'k_{i}')
+            c.edge(f'ln1_norm_{i}', f'v_{i}')
+            c.edge(f'attn_output_{i}', f'ln2_mean_{i}')
+            c.edge(f'attn_output_{i}', f'ln2_var_{i}')
+            c.edge(f'ln2_norm_{i}', f'fc1_{i}')
+        
+        if i == 0:
+            dot.edge('pos_emb', f'ln1_mean_0')
+            dot.edge('pos_emb', f'ln1_var_0')
+        else:
+            dot.edge(f'fc2_{i-1}', f'ln1_mean_{i}')
+            dot.edge(f'fc2_{i-1}', f'ln1_var_{i}')
+    
+    # Final Layer Norm and Output (similar to above code)
+    dot.edge('fc2_5', 'final_ln_mean')
+    dot.edge('fc2_5', 'final_ln_var')
+    dot.node('output', 'Output Logits', shape='ellipse')
+    dot.edge('final_ln_norm', 'output')
+    
+    return dot
 
 def get_model_predictions(model: HookedTransformer, tokens: torch.Tensor, top_k: int = 10) -> list:
     """
@@ -493,7 +574,7 @@ def visualize_model(query: str, block_number: int) -> dict:
 
     return output
 
-with gr.Blocks() as demo:
+with gr.Blocks(css="#tabgroup { flex-grow: 1; }") as demo:
     gr.Markdown("# DistilGPT2 Visualization")
     with gr.Row():
         with gr.Column(scale=1):
@@ -507,7 +588,7 @@ with gr.Blocks() as demo:
         with gr.Column(scale=1):
             prediction_plot = gr.Plot(label="Top 10 Predictions")
 
-    with gr.Tabs():
+    with gr.Tabs(elem_id="tabgroup") as tabs:
         with gr.Tab("Embeddings"):
             embeddings_plot1 = gr.Plot(label="Token Embeddings")
             embeddings_plot2 = gr.Plot(label="Position Embeddings")
@@ -519,7 +600,7 @@ with gr.Blocks() as demo:
             ln1_plot1 = gr.Plot(label="LayerNorm1 Scale")
             ln1_plot2 = gr.Plot(label="LayerNorm1 Normalized")
         with gr.Tab("Attention"):
-            attention_plots = [gr.Plot(label=f"Attention Component {i+1}") for i in range(6)]  # 6 attention components
+            attention_plots = [gr.Plot(label=f"Attention Component {i+1}") for i in range(6)]
         with gr.Tab("LayerNorm2"):
             ln2_plot1 = gr.Plot(label="LayerNorm2 Scale")
             ln2_plot2 = gr.Plot(label="LayerNorm2 Normalized")
@@ -606,6 +687,7 @@ with gr.Blocks() as demo:
             mlp_plot6
         ]
     )
+
 
 if __name__ == "__main__":
     demo.launch()
