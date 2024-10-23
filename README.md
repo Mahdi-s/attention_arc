@@ -1,14 +1,10 @@
----
-title: DistilGPT2_Visualization
-app_file: app.py
-sdk: gradio
-sdk_version: 5.1.0
----
 # 🔬 DistilGPT2 Visualization 🧠
 
 ## 📚 Educational Tool for Exploring Language Model Internals
 
 Welcome to the DistilGPT2 Visualization app! 🎉 This interactive tool allows you to peek inside the "brain" of a language model and understand its inner workings.
+
+![image](https://github.com/user-attachments/assets/90c5157f-81ad-451e-b9a8-95cd225b7695)
 
 ### 🌟 Features
 
