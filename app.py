@@ -943,5 +943,7 @@ with gr.Blocks(
 if __name__ == "__main__":
     demo.launch(
         show_api=False,
-        favicon_path=svg_path  # Set the favicon path directly in launch
+        favicon_path=svg_path,
+        server_name="0.0.0.0",
+        server_port=int(os.environ.get("PORT", 7860))
     )
