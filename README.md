@@ -10,6 +10,8 @@ sdk_version: 5.1.0
 
 Welcome to the DistilGPT2 Visualization app! 🎉 This interactive tool allows you to peek inside the "brain" of a language model and understand its inner workings.
 
+![image](https://github.com/user-attachments/assets/90c5157f-81ad-451e-b9a8-95cd225b7695)
+
 ### 🌟 Features
 
 - 🔍 Visualize various components of the DistilGPT2 model
