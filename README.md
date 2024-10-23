@@ -45,8 +45,8 @@ To run this project on your local machine, follow these steps:
 
 1. 📥 Clone the repository:
    ```
-   git clone https://github.com/your-username/distilgpt2-visualization.git
-   cd distilgpt2-visualization
+   git clone https://github.com/Mahdi-s/llm.guts.git
+   cd llm.guts
    ```
 
 2. 🐍 Create a virtual environment (optional but recommended):
@@ -75,12 +75,12 @@ Alternatively, you can run the application using Docker:
 
 1. 🏗️ Build the Docker image:
    ```
-   docker build -t distilgpt2-visualization .
+   docker build -t llm.guts .
    ```
 
 2. 🐳 Run the Docker container:
    ```
-   docker run -p 7860:7860 distilgpt2-visualization
+   docker run -p 7860:7860 llm.guts
    ```
 
 3. 🌐 Access the application at `http://localhost:7860` in your web browser.
