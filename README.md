@@ -39,4 +39,50 @@ Welcome to the DistilGPT2 Visualization app! 🎉 This interactive tool allows y
 - Utilizes the `transformer_lens` library for model introspection
 - Generates interactive plots using Plotly
 
+### 🏃‍♂️ Running Locally
+
+To run this project on your local machine, follow these steps:
+
+1. 📥 Clone the repository:
+   ```
+   git clone https://github.com/your-username/distilgpt2-visualization.git
+   cd distilgpt2-visualization
+   ```
+
+2. 🐍 Create a virtual environment (optional but recommended):
+   ```
+   python -m venv venv
+   source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
+   ```
+
+3. 📦 Install the required dependencies:
+   ```
+   pip install -r requirements.txt
+   ```
+
+4. 🚀 Run the application:
+   ```
+   python app.py
+   ```
+
+5. 🌐 Open your web browser and navigate to `http://localhost:7860` to access the application.
+
+Note: Ensure you have Python 3.7+ installed on your system before running the application locally.
+
+### 🐳 Running with Docker
+
+Alternatively, you can run the application using Docker:
+
+1. 🏗️ Build the Docker image:
+   ```
+   docker build -t distilgpt2-visualization .
+   ```
+
+2. 🐳 Run the Docker container:
+   ```
+   docker run -p 7860:7860 distilgpt2-visualization
+   ```
+
+3. 🌐 Access the application at `http://localhost:7860` in your web browser.
+
 Dive in and start exploring the fascinating world of language models! 🌊🤖
