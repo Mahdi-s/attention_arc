@@ -1,0 +1,62 @@
+/* Base layout styles */
+#tabgroup { 
+    flex-grow: 1;
+    width: 100%;
+}
+
+.gradio-container .footer {
+    display: none !important;
+}
+
+footer {
+    display: none !important;
+}
+
+img.logo {
+    margin-right: 20px;
+    height: 50px;
+    width: auto;
+}
+
+/* Plot container styles */
+.plot-container {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+.tab-content {
+    min-height: 500px;
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+/* Tab panel styles */
+.tabs > div[role="tabpanel"] {
+    min-width: 100% !important;
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+.plot-container.plotly {
+    min-width: 100% !important;
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+/* Subplot layout fixes */
+.js-plotly-plot {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+.js-plotly-plot .plot-container {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+/* Grid container styles */
+.contain {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+}
