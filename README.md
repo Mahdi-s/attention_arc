@@ -1,9 +1,3 @@
----
-title: DistilGPT2_Visualization
-app_file: app.py
-sdk: gradio
-sdk_version: 5.1.0
----
 # 🔬 DistilGPT2 Visualization 🧠
 
 ## 📚 Educational Tool for Exploring Language Model Internals
