@@ -67,7 +67,7 @@ To run this project on your local machine, follow these steps:
 
 5. 🌐 Open your web browser and navigate to `http://localhost:7860` to access the application.
 
-Note: Ensure you have Python 3.7+ installed on your system before running the application locally.
+Note: Ensure you have Python 3.11+ installed on your system before running the application locally.
 
 ### 🐳 Running with Docker
 
