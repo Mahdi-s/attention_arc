@@ -436,12 +436,12 @@ def plot_attention(data: torch.Tensor, title: str, tokens: list) -> go.Figure:
         
         fig.update_layout(
             title=title,
-            title_x=0.5,  # Center the title horizontally (0 to 1)
-            title_y=0.95,  # Position from bottom (0) to top (1)
+            title_x=0.5,
+            title_y=0.95,
             xaxis_title="Keys",
             yaxis_title="Queries",
-            autosize=True,
-            height=500,
+            height=600,
+            width=800,
             margin=dict(l=50, r=50, t=50, b=50),
             template="plotly",
             uirevision=True
@@ -465,23 +465,40 @@ def plot_attention(data: torch.Tensor, title: str, tokens: list) -> go.Figure:
         if len(data_np.shape) == 4:
             data_np = data_np[0]
         num_heads = data_np.shape[0]
-        cols = 4
+        cols = min(4, num_heads)
         rows = (num_heads + cols - 1) // cols
         
-        # Calculate appropriate vertical spacing based on number of rows
-        # The vertical spacing must be less than 1/(rows-1)
-        vertical_spacing = min(0.2, 0.9/(rows)) if rows > 1 else 0.2
+        # Calculate dynamic spacing based on number of rows
+        vertical_spacing = min(0.3, 1.0 / (rows + 1))
+        horizontal_spacing = min(0.2, 1.0 / (cols + 1))
+        
+        # Calculate figure dimensions
+        height_per_row = 300
+        width_per_col = 250
+        total_height = max(600, rows * height_per_row)
+        total_width = max(800, cols * width_per_col)
         
         fig = make_subplots(
             rows=rows,
             cols=cols,
-            horizontal_spacing=0.15,
-            vertical_spacing=vertical_spacing
+            horizontal_spacing=horizontal_spacing,
+            vertical_spacing=vertical_spacing,
+            subplot_titles=[f"Head {i}" for i in range(num_heads)]
         )
         
         for i in range(num_heads):
             row = i // cols + 1
             col = i % cols + 1
+            
+            # Calculate appropriate tick frequency
+            tick_freq = max(1, len(tokens) // 6)  # Show at most 6 ticks
+            
+            # Shorten token labels if needed
+            max_len = 10
+            shortened_tokens = [t[:max_len] + '...' if len(t) > max_len else t 
+                              for t in tokens[::tick_freq]]
+            tick_positions = list(range(0, len(tokens), tick_freq))
+            
             fig.add_trace(
                 go.Heatmap(
                     z=data_np[i],
@@ -489,58 +506,63 @@ def plot_attention(data: torch.Tensor, title: str, tokens: list) -> go.Figure:
                     y=tokens,
                     colorscale='RdBu',
                     reversescale=True,
-                    showscale=False
+                    showscale=(col == cols and row == 1)  # Show colorbar only for first row, last column
                 ),
                 row=row,
                 col=col
             )
             
             fig.update_xaxes(
-                title_text="Keys", 
-                row=row, 
-                col=col, 
-                side="top", 
-                title_standoff=25,
-                automargin=True,
-                scaleanchor=f"y{i+1}",
-                constrain="domain"
+                title_text="Keys",
+                row=row,
+                col=col,
+                side="bottom",
+                ticktext=shortened_tokens,
+                tickvals=tick_positions,
+                tickangle=45,
+                tickfont=dict(size=8),
+                title_font=dict(size=10),
+                title_standoff=25
             )
             
             fig.update_yaxes(
-                title_text="Queries", 
-                row=row, 
-                col=col, 
-                title_standoff=25,
-                automargin=True,
-                scaleanchor=f"x{i+1}",
-                constrain="domain"
-            )
-            
-            fig.add_annotation(
-                text=f"Head {i}",
-                xref=f"x{i+1}",
-                yref=f"y{i+1}",
-                x=0.5,
-                y=-0.25,
-                showarrow=False,
-                font=dict(size=12),
+                title_text="Queries",
                 row=row,
-                col=col
+                col=col,
+                ticktext=shortened_tokens,
+                tickvals=tick_positions,
+                tickfont=dict(size=8),
+                title_font=dict(size=10),
+                title_standoff=25
             )
         
         fig.update_layout(
-            title=title,
-            title_x=0.5,  # Center the title horizontally (0 to 1)
-            title_y=0.97,  # Position from bottom (0) to top (1)
-            height=300*rows,
-            autosize=True,
+            title=dict(
+                text=title,
+                x=0.5,
+                y=0.98,
+                font=dict(size=14)
+            ),
+            height=total_height,
+            width=total_width,
             showlegend=False,
-            margin=dict(l=50, r=50, t=50, b=100),
-            template="plotly",
-            uirevision=True
+            margin=dict(l=50, r=100, t=100, b=80),  # Increased margins
+            template="plotly"
         )
         
-        fig.update_layout(coloraxis=dict(colorbar=dict(title="Attention Score", y=0.5)))
+        # Adjust colorbar
+        if num_heads > 1:
+            fig.update_layout(coloraxis=dict(colorbar=dict(
+                title="Attention Score",
+                lenmode="fraction",
+                len=0.75,
+                yanchor="middle",
+                y=0.5,
+                xanchor="right",
+                x=1.02,
+                title_font=dict(size=10),
+                tickfont=dict(size=8)
+            )))
         
         return fig
     
@@ -730,6 +752,8 @@ def read_svg_file(file_path):
         print(f"Error reading SVG file: {e}")
         return None
 
+
+
 custom_css = """
 #tabgroup { flex-grow: 1; }
 .gradio-container .footer {display: none !important;}
@@ -743,18 +767,15 @@ img.logo {
 .plot-container {
     width: 100% !important;
 }
-.tab-content {
-    min-height: 500px;
-    width: 100%;
+.plotly-graph-div {
+    height: auto !important;
 }
-/* Ensure plots maintain size in hidden tabs */
-.tabs > div[role="tabpanel"] {
-    min-width: 100%;
-    width: 100% !important;
+.sidebar .gr-accordion {
+    margin-bottom: 10px;
 }
-.plot-container.plotly {
-    min-width: 100%;
-    width: 100% !important;
+/* Adjust the width of the sidebar */
+.gradio-container .sidebar {
+    width: 300px;
 }
 """
 
@@ -774,7 +795,6 @@ if logo_svg is None:
 # Create data URL for the logo
 logo_data_url = f"data:image/svg+xml;base64,{base64.b64encode(logo_svg.encode('utf-8')).decode('utf-8')}"
 
-
 logo_and_favicon_html = f"""
 <div style="display: flex; align-items: center; margin-bottom: 20px;">
     <img src="{logo_data_url}" class="logo" alt="Logo"/>
@@ -782,22 +802,53 @@ logo_and_favicon_html = f"""
 </div>
 """
 
-custom_css = """
-#tabgroup { flex-grow: 1; }
-.gradio-container .footer {display: none !important;}
-footer {display: none !important;}
-img.logo {
-    margin-right: 20px;
-    height: 50px;
-    width: auto;
-}
-"""
+# Calculate the total number of possible plots
+num_embeddings_plots = len(["Token Embeddings", "Position Embeddings"])
+num_residuals_plots = len(["Residual Stream Pre", "Residual Stream Mid", "Residual Stream Post"])
+num_ln1_plots = len(["LayerNorm1 Scale", "LayerNorm1 Normalized"])
+num_attention_plots = len([
+    "Attention Q Vector",
+    "Attention K Vector",
+    "Attention V Vector",
+    "Attention Output",
+    "Attention Scores",
+    "Attention Weights"
+])
+num_ln2_plots = len(["LayerNorm2 Scale", "LayerNorm2 Normalized"])
+num_mlp_plots = len([
+    "MLP Pre-Activation Heatmap",
+    "MLP Pre-Activation Histogram",
+    "MLP Post-Activation Heatmap",
+    "MLP Post-Activation Histogram",
+    "MLP Output Heatmap",
+    "MLP Output Histogram"
+])
+num_prediction_plots = len(["Top 10 Predictions"])
+num_computation_graph_plots = len(["Computational Graph"])
 
+# Total plots
+total_plots = (
+    num_prediction_plots +
+    num_embeddings_plots +
+    num_residuals_plots +
+    num_ln1_plots +
+    num_attention_plots +
+    num_ln2_plots +
+    num_mlp_plots +
+    num_computation_graph_plots
+)
 
+# Predefine the output components
+plot_outputs = [gr.Plot(visible=False) for _ in range(total_plots - num_computation_graph_plots)]
+# For the computation graph HTML
+plot_outputs.extend([gr.HTML(visible=False) for _ in range(num_computation_graph_plots)])
+
+# Build the interface
 with gr.Blocks(
     css=custom_css,
     title="DistilGPT2.guts",
     analytics_enabled=False,
+    theme=gr.themes.Default(),
     head=f"""
         <meta property="og:image" content="{logo_data_url}" />
         <meta property="og:title" content="DistilGPT2 Visualization" />
@@ -805,9 +856,11 @@ with gr.Blocks(
         <link rel="stylesheet" href="file/static/css/style.css" />
     """
 ) as demo:
-    gr.HTML(logo_and_favicon_html)
     with gr.Row():
-        with gr.Column(scale=1):
+        with gr.Column(scale=1, min_width=300) as sidebar:
+            # Sidebar with collapsible sections
+            gr.HTML(logo_and_favicon_html)
+            # Input components
             query_input = gr.Textbox(label="Enter your query:", value="Hello, world!")
             block_number_input = gr.Dropdown(
                 choices=list(range(6)),
@@ -830,114 +883,213 @@ with gr.Blocks(
                 label="Top P (nucleus sampling)"
             )
             submit_button = gr.Button("Submit")
-        with gr.Column(scale=1):
-            prediction_plot = gr.Plot(label="Top 10 Predictions")
 
-    with gr.Tabs(elem_id="tabgroup") as tabs:
-        with gr.Tab("Embeddings") as embeddings_tab:
-            embeddings_plot1 = gr.Plot(label="Token Embeddings")
-            embeddings_plot2 = gr.Plot(label="Position Embeddings")
-        with gr.Tab("Residual Streams") as residuals_tab:
-            residuals_plot1 = gr.Plot(label="Residual Stream Pre")
-            residuals_plot2 = gr.Plot(label="Residual Stream Mid")
-            residuals_plot3 = gr.Plot(label="Residual Stream Post")
-        with gr.Tab("LayerNorm1") as ln1_tab:
-            ln1_plot1 = gr.Plot(label="LayerNorm1 Scale")
-            ln1_plot2 = gr.Plot(label="LayerNorm1 Normalized")
-        with gr.Tab("Attention") as attention_tab:
-            attention_plots = [gr.Plot(label=f"Attention Component {i+1}") for i in range(6)]
-        with gr.Tab("LayerNorm2") as ln2_tab:
-            ln2_plot1 = gr.Plot(label="LayerNorm2 Scale")
-            ln2_plot2 = gr.Plot(label="LayerNorm2 Normalized")
-        with gr.Tab("MLP") as mlp_tab:
-            mlp_plot1 = gr.Plot(label="MLP Pre-Activation Heatmap")
-            mlp_plot2 = gr.Plot(label="MLP Pre-Activation Histogram")
-            mlp_plot3 = gr.Plot(label="MLP Post-Activation Heatmap")
-            mlp_plot4 = gr.Plot(label="MLP Post-Activation Histogram")
-            mlp_plot5 = gr.Plot(label="MLP Output Heatmap")
-            mlp_plot6 = gr.Plot(label="MLP Output Histogram")
-        with gr.Tab("Computation Graph") as computation_graph_tab:
-            computation_graph_html = gr.HTML(label="Computation Graph")
+            # Collapsible tabs with checkboxes
+            with gr.Accordion("Embeddings", open=False):
+                embeddings_graph_names = ["Token Embeddings", "Position Embeddings"]
+                embeddings_checkboxes = [
+                    gr.Checkbox(label=name, value=False) for name in embeddings_graph_names
+                ]
+            with gr.Accordion("Residual Streams", open=False):
+                residuals_graph_names = ["Residual Stream Pre", "Residual Stream Mid", "Residual Stream Post"]
+                residuals_checkboxes = [
+                    gr.Checkbox(label=name, value=False) for name in residuals_graph_names
+                ]
+            with gr.Accordion("LayerNorm1", open=False):
+                ln1_graph_names = ["LayerNorm1 Scale", "LayerNorm1 Normalized"]
+                ln1_checkboxes = [
+                    gr.Checkbox(label=name, value=False) for name in ln1_graph_names
+                ]
+            with gr.Accordion("Attention", open=False):
+                attention_graph_names = [
+                    "Attention Q Vector",
+                    "Attention K Vector",
+                    "Attention V Vector",
+                    "Attention Output",
+                    "Attention Scores",
+                    "Attention Weights"
+                ]
+                attention_checkboxes = [
+                    gr.Checkbox(label=name, value=False) for name in attention_graph_names
+                ]
+            with gr.Accordion("LayerNorm2", open=False):
+                ln2_graph_names = ["LayerNorm2 Scale", "LayerNorm2 Normalized"]
+                ln2_checkboxes = [
+                    gr.Checkbox(label=name, value=False) for name in ln2_graph_names
+                ]
+            with gr.Accordion("MLP", open=False):
+                mlp_graph_names = [
+                    "MLP Pre-Activation Heatmap",
+                    "MLP Pre-Activation Histogram",
+                    "MLP Post-Activation Heatmap",
+                    "MLP Post-Activation Histogram",
+                    "MLP Output Heatmap",
+                    "MLP Output Histogram"
+                ]
+                mlp_checkboxes = [
+                    gr.Checkbox(label=name, value=False) for name in mlp_graph_names
+                ]
+            with gr.Accordion("Top 10 Predictions", open=False):
+                top_predictions_graph_names = ["Top 10 Predictions"]
+                top_predictions_checkboxes = [
+                    gr.Checkbox(label=name, value=False) for name in top_predictions_graph_names
+                ]
+            with gr.Accordion("Computational Graph", open=False):
+                computational_graph_names = ["Computational Graph"]
+                computational_graph_checkboxes = [
+                    gr.Checkbox(label=name, value=False) for name in computational_graph_names
+                ]
+        with gr.Column(scale=3) as main_area:
+            # Predefine output components
+            outputs_list = plot_outputs
+            # For layout purposes, group them in a Column
+            with gr.Column() as output_column:
+                for plot_output in outputs_list:
+                    plot_output.render()
 
-    def on_submit(query, block_number, temperature, seed, top_p):
+    def on_submit(
+        query,
+        block_number,
+        temperature,
+        seed,
+        top_p,
+        *checkbox_values  # Accept all checkbox values as variable arguments
+    ):
+        # Now, checkbox_values is a flat tuple of all the checkbox values.
+        # We need to split them back into their respective lists.
+        
+        # Determine the number of checkboxes in each category
+        num_embeddings = len(embeddings_checkboxes)
+        num_residuals = len(residuals_checkboxes)
+        num_ln1 = len(ln1_checkboxes)
+        num_attention = len(attention_checkboxes)
+        num_ln2 = len(ln2_checkboxes)
+        num_mlp = len(mlp_checkboxes)
+        num_prediction_plots = len(top_predictions_checkboxes)
+        num_computation_graph_plots = len(computational_graph_checkboxes)
+        
+        # Split the checkbox_values tuple into the respective lists
+        idx = 0
+        embeddings_checks = list(checkbox_values[idx: idx + num_embeddings])
+        idx += num_embeddings
+        residuals_checks = list(checkbox_values[idx: idx + num_residuals])
+        idx += num_residuals
+        ln1_checks = list(checkbox_values[idx: idx + num_ln1])
+        idx += num_ln1
+        attention_checks = list(checkbox_values[idx: idx + num_attention])
+        idx += num_attention
+        ln2_checks = list(checkbox_values[idx: idx + num_ln2])
+        idx += num_ln2
+        mlp_checks = list(checkbox_values[idx: idx + num_mlp])
+        idx += num_mlp
+        top_predictions_checks = list(checkbox_values[idx: idx + num_prediction_plots])
+        idx += num_prediction_plots
+        computational_graph_checks = list(checkbox_values[idx: idx + num_computation_graph_plots])
+
         output = visualize_model(query, int(block_number), temperature, int(seed), top_p)
-        # Extract the plots
+
+        # Initialize list to hold outputs
+        outputs_to_return = []
+
+        # Top 10 Predictions Plot
+        if top_predictions_checks[0]:
+            outputs_to_return.append(
+                gr.update(value=output["prediction_plot"], visible=True)
+            )
+        else:
+            outputs_to_return.append(gr.update(visible=False))
+
+        # Embeddings
         embeddings_plots = output["plots"]["Embeddings"]
+        for idx2, checked in enumerate(embeddings_checks):
+            if checked and idx2 < len(embeddings_plots):
+                outputs_to_return.append(
+                    gr.update(value=embeddings_plots[idx2], visible=True)
+                )
+            else:
+                outputs_to_return.append(gr.update(visible=False))
+
+        # Residual Streams
         residuals_plots = output["plots"]["Residual Streams"]
+        for idx2, checked in enumerate(residuals_checks):
+            if checked and idx2 < len(residuals_plots):
+                outputs_to_return.append(
+                    gr.update(value=residuals_plots[idx2], visible=True)
+                )
+            else:
+                outputs_to_return.append(gr.update(visible=False))
+
+        # LayerNorm1
         ln1_plots = output["plots"]["LayerNorm1"]
+        for idx2, checked in enumerate(ln1_checks):
+            if checked and idx2 < len(ln1_plots):
+                outputs_to_return.append(
+                    gr.update(value=ln1_plots[idx2], visible=True)
+                )
+            else:
+                outputs_to_return.append(gr.update(visible=False))
+
+        # Attention
         attention_plots_output = output["plots"]["Attention"]
+        for idx2, checked in enumerate(attention_checks):
+            if checked and idx2 < len(attention_plots_output):
+                outputs_to_return.append(
+                    gr.update(value=attention_plots_output[idx2], visible=True)
+                )
+            else:
+                outputs_to_return.append(gr.update(visible=False))
+
+        # LayerNorm2
         ln2_plots = output["plots"]["LayerNorm2"]
+        for idx2, checked in enumerate(ln2_checks):
+            if checked and idx2 < len(ln2_plots):
+                outputs_to_return.append(
+                    gr.update(value=ln2_plots[idx2], visible=True)
+                )
+            else:
+                outputs_to_return.append(gr.update(visible=False))
+
+        # MLP
         mlp_plots = output["plots"]["MLP"]
+        for idx2, checked in enumerate(mlp_checks):
+            if checked and idx2 < len(mlp_plots):
+                outputs_to_return.append(
+                    gr.update(value=mlp_plots[idx2], visible=True)
+                )
+            else:
+                outputs_to_return.append(gr.update(visible=False))
 
-        # Prepare the return values
-        return_values = [
-            output["prediction_plot"]
-        ]
+        # Computational Graph
+        if computational_graph_checks[0]:
+            # Generate the computation graph SVG data
+            model = load_model()
+            svg_data = generate_computation_graph_svg(model)
+            outputs_to_return.append(
+                gr.update(value=svg_data, visible=True)
+            )
+        else:
+            outputs_to_return.append(gr.update(visible=False))
 
-        # Embeddings plots
-        embeddings_plot1_val = embeddings_plots[0] if len(embeddings_plots) > 0 else None
-        embeddings_plot2_val = embeddings_plots[1] if len(embeddings_plots) > 1 else None
-        return_values.extend([embeddings_plot1_val, embeddings_plot2_val])
-
-        # Residuals plots
-        residuals_plot1_val = residuals_plots[0] if len(residuals_plots) > 0 else None
-        residuals_plot2_val = residuals_plots[1] if len(residuals_plots) > 1 else None
-        residuals_plot3_val = residuals_plots[2] if len(residuals_plots) > 2 else None
-        return_values.extend([residuals_plot1_val, residuals_plot2_val, residuals_plot3_val])
-
-        # LayerNorm1 plots
-        ln1_plot1_val = ln1_plots[0] if len(ln1_plots) > 0 else None
-        ln1_plot2_val = ln1_plots[1] if len(ln1_plots) > 1 else None
-        return_values.extend([ln1_plot1_val, ln1_plot2_val])
-
-        # Attention plots
-        attention_plots_vals = attention_plots_output
-        return_values.extend(attention_plots_vals + [None] * (6 - len(attention_plots_vals)))  # Pad with None if less than 6 plots
-
-        # LayerNorm2 plots
-        ln2_plot1_val = ln2_plots[0] if len(ln2_plots) > 0 else None
-        ln2_plot2_val = ln2_plots[1] if len(ln2_plots) > 1 else None
-        return_values.extend([ln2_plot1_val, ln2_plot2_val])
-
-        # MLP plots
-        mlp_plot1_val = mlp_plots[0] if len(mlp_plots) > 0 else None
-        mlp_plot2_val = mlp_plots[1] if len(mlp_plots) > 1 else None
-        mlp_plot3_val = mlp_plots[2] if len(mlp_plots) > 2 else None
-        mlp_plot4_val = mlp_plots[3] if len(mlp_plots) > 3 else None
-        mlp_plot5_val = mlp_plots[4] if len(mlp_plots) > 4 else None
-        mlp_plot6_val = mlp_plots[5] if len(mlp_plots) > 5 else None
-        return_values.extend([mlp_plot1_val, mlp_plot2_val, mlp_plot3_val, mlp_plot4_val, mlp_plot5_val, mlp_plot6_val])
-
-        # Generate the computation graph SVG data
-        model = load_model()
-        svg_data = generate_computation_graph_svg(model)
-        return_values.append(svg_data)
-
-        return tuple(return_values)
+        return outputs_to_return
 
     submit_button.click(
         fn=on_submit,
-        inputs=[query_input, block_number_input, temperature_slider, seed_input, top_p_slider],
-        outputs=[
-            prediction_plot,
-            embeddings_plot1,
-            embeddings_plot2,
-            residuals_plot1,
-            residuals_plot2,
-            residuals_plot3,
-            ln1_plot1,
-            ln1_plot2,
-            *attention_plots,  # Unpack the attention plots
-            ln2_plot1,
-            ln2_plot2,
-            mlp_plot1,
-            mlp_plot2,
-            mlp_plot3,
-            mlp_plot4,
-            mlp_plot5,
-            mlp_plot6,
-            computation_graph_html  # Added the new output here
-        ]
+        inputs=[
+            query_input,
+            block_number_input,
+            temperature_slider,
+            seed_input,
+            top_p_slider,
+            *embeddings_checkboxes,  # Unpack the lists of checkboxes
+            *residuals_checkboxes,
+            *ln1_checkboxes,
+            *attention_checkboxes,
+            *ln2_checkboxes,
+            *mlp_checkboxes,
+            *top_predictions_checkboxes,
+            *computational_graph_checkboxes
+        ],
+        outputs=plot_outputs  # Use the predefined outputs
     )
 
 if __name__ == "__main__":
