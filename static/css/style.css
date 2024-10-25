@@ -1,62 +1,82 @@
-/* Base layout styles */
-#tabgroup { 
-    flex-grow: 1;
-    width: 100%;
-}
-
-.gradio-container .footer {
-    display: none !important;
-}
-
-footer {
-    display: none !important;
-}
-
+#tabgroup { flex-grow: 1; }
+.gradio-container .footer {display: none !important;}
+footer {display: none !important;}
 img.logo {
     margin-right: 20px;
     height: 50px;
     width: auto;
 }
 
-/* Plot container styles */
+/* Force plots to use full width */
 .plot-container {
     width: 100% !important;
-    max-width: 100% !important;
+}
+.plotly-graph-div {
+    height: auto !important;
+}
+.sidebar .gr-accordion {
+    margin-bottom: 10px;
+}
+/* Adjust the width of the sidebar */
+.gradio-container .sidebar {
+    width: 300px;
 }
 
-.tab-content {
-    min-height: 500px;
-    width: 100% !important;
-    max-width: 100% !important;
+/* Theme toggle button styles */
+.theme-toggle {
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 2px solid #666;
+    background: transparent;
+    color: inherit;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
 }
 
-/* Tab panel styles */
-.tabs > div[role="tabpanel"] {
-    min-width: 100% !important;
-    width: 100% !important;
-    max-width: 100% !important;
+.theme-toggle svg {
+    width: 20px;
+    height: 20px;
 }
 
-.plot-container.plotly {
-    min-width: 100% !important;
-    width: 100% !important;
-    max-width: 100% !important;
+/* Theme-specific styles */
+.dark-theme {
+    background-color: #1a1a1a;
+    color: #ffffff;
 }
 
-/* Subplot layout fixes */
-.js-plotly-plot {
-    width: 100% !important;
-    max-width: 100% !important;
+.light-theme {
+    background-color: #ffffff;
+    color: #000000;
 }
 
-.js-plotly-plot .plot-container {
-    width: 100% !important;
-    max-width: 100% !important;
+.header-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    width: 100%;
+    padding: 0;
 }
 
-/* Grid container styles */
-.contain {
-    width: 100% !important;
-    max-width: 100% !important;
-    padding: 0 !important;
+.logo-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-right: 8px;
+}
+
+.logo-title h1 {
+    margin: 0;
+    font-size: 1.2rem;
+    white-space: nowrap;
+}
+
+img.logo {
+    height: 40px;
+    width: auto;
+    margin: 0;
 }
