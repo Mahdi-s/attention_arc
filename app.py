@@ -894,7 +894,7 @@ theme_toggle_html = """
         <img src="{{logo_data_url}}" class="logo" alt="Logo"/>
         <h1>DistilGPT2.guts</h1>
     </div>
-    <button id="theme-toggle" class="theme-toggle" onclick="window.gradio_theme = window.gradio_theme === 'light' ? 'dark' : 'light'; document.querySelector('#theme-hidden').click()">
+    <button id="theme-toggle" class="theme-toggle" data-theme="dark">
         <svg id="sun-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="5"/>
             <line x1="12" y1="1" x2="12" y2="3"/>
@@ -914,43 +914,51 @@ theme_toggle_html = """
 </div>
 
 <script>
+function gradioApp() {
+    const elems = document.getElementsByTagName('gradio-app');
+    const gradioShadowRoot = elems.length === 0 ? null : elems[0].shadowRoot;
+    return gradioShadowRoot ? gradioShadowRoot : document;
+}
+
 document.addEventListener('DOMContentLoaded', function() {
-    window.gradio_theme = 'dark';  // Initial theme
     const toggleButton = document.getElementById('theme-toggle');
+    const sunIcon = document.getElementById('sun-icon');
+    const moonIcon = document.getElementById('moon-icon');
+    const themeText = document.getElementById('theme-text');
     
     function updateThemeButton(isDark) {
-        const sunIcon = document.getElementById('sun-icon');
-        const moonIcon = document.getElementById('moon-icon');
-        const themeText = document.getElementById('theme-text');
-        
         if (isDark) {
             sunIcon.style.display = 'inline';
             moonIcon.style.display = 'none';
             themeText.textContent = 'Light';
             toggleButton.style.backgroundColor = '#ffffff20';
             toggleButton.style.color = '#ffffff';
+            toggleButton.dataset.theme = 'dark';
         } else {
             sunIcon.style.display = 'none';
             moonIcon.style.display = 'inline';
             themeText.textContent = 'Dark';
             toggleButton.style.backgroundColor = '#00000020';
             toggleButton.style.color = '#000000';
+            toggleButton.dataset.theme = 'light';
         }
     }
 
-    // Update button state when theme changes
-    const observer = new MutationObserver(function(mutations) {
-        mutations.forEach(function(mutation) {
-            if (mutation.attributeName === 'class') {
-                const isDark = window.gradio_theme === 'dark';
-                updateThemeButton(isDark);
-            }
-        });
-    });
+    // Initial theme state
+    let isDark = true;
+    updateThemeButton(isDark);
 
-    observer.observe(document.body, {
-        attributes: true,
-        attributeFilter: ['class']
+    // Handle button clicks
+    toggleButton.addEventListener('click', function() {
+        isDark = !isDark;
+        updateThemeButton(isDark);
+        
+        // Find and click the Gradio toggle
+        const gradioAppRoot = gradioApp();
+        const gradioToggle = gradioAppRoot.querySelector('#theme-hidden input[type="checkbox"]');
+        if (gradioToggle) {
+            gradioToggle.click();
+        }
     });
 });
 </script>
@@ -1027,52 +1035,37 @@ def toggle_theme(dark_mode):
     """Simple theme toggle function that returns the appropriate theme object"""
     return dark_theme if dark_mode else light_theme
 
-# Create the Blocks app with theme support
 with gr.Blocks(
     css=custom_css,
     title="DistilGPT2.guts",
     analytics_enabled=False,
-    theme=dark_theme,
-    head=f"""
-        <meta property="og:image" content="{logo_data_url}" />
-        <meta property="og:title" content="DistilGPT2 Visualization" />
-        <link rel="icon" type="image/svg+xml" href="{logo_data_url}" />
-        <link rel="stylesheet" href="file/static/css/style.css" />
-    """
+    theme=dark_theme
 ) as demo:
-    theme_state = gr.State(value="dark")
-
+    # Add the header with logo and title
+    gr.HTML(header_html)
     
-    # Rest of your application code...
     with gr.Row():
         with gr.Column(scale=1, min_width=300) as sidebar:
-            # Logo and title in header
-            gr.HTML(f"""
-                <div class="header-container">
-                    <div class="logo-title">
-                        <img src="{logo_data_url}" class="logo" alt="Logo"/>
-                        <h1>DistilGPT2.guts</h1>
-                    </div>
-                </div>
-            """)
-            
-            # Add theme toggle
-            theme_toggle = Toggle(
-                value=True,  # Start with dark mode
+            # Add the hidden theme toggle checkbox
+            theme_toggle = gr.Checkbox(
                 label="Dark Mode",
-                container=False,
+                value=True,
+                visible=False,
+                elem_id="theme-hidden"
             )
-
-            @demo.load(api_name=False)
-            def set_initial_theme():
-                """Set the initial theme on load"""
-                return toggle_theme(True)
-
-            @theme_toggle.change(api_name=False)
-            def update_theme(dark_mode):
-                """Update the theme when toggle changes"""
-                return toggle_theme(dark_mode)
-            # Input components
+            
+            # Define the theme toggle function
+            def toggle_theme(checked):
+                return dark_theme if checked else light_theme
+            
+            # Connect the theme toggle to the theme update function
+            theme_toggle.change(
+                fn=toggle_theme,
+                inputs=theme_toggle,
+                outputs=demo
+            )
+            
+                # Input components
             query_input = gr.Textbox(label="Enter your query:", value="Hello, world!")
             block_number_input = gr.Dropdown(
                 choices=list(range(6)),
