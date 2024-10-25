@@ -1,8 +1,8 @@
 # 🔬 DistilGPT2 Visualization 🧠
 
-## 📚 Educational Tool for Exploring Language Model Internals
+📚 Educational Tool for Exploring Language Model Internals
 
-Welcome to the DistilGPT2 Visualization app! 🎉 This interactive tool allows you to peek inside the "brain" of a language model and understand its inner workings.
+Welcome to the DistilGPT2 Visualization app! This interactive tool allows you to peek inside the "brain" of a language model and understand its inner workings.
 
 ![image](https://github.com/user-attachments/assets/90c5157f-81ad-451e-b9a8-95cd225b7695)
 
@@ -85,4 +85,6 @@ Alternatively, you can run the application using Docker:
 
 3. 🌐 Access the application at `http://localhost:7860` in your web browser.
 
-Dive in and start exploring the fascinating world of language models! 🌊🤖
+Dive in and start exploring the fascinating world of language models! 
+
+I'm working on adding support for additional models, let me know which models you'd like to see here. :)
